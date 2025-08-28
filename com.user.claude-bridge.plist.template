@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.user.claude-bridge</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$HOME/.venvs/claude-bridge/bin/uvicorn</string>
+    <string>claude_bridge_server:app</string>
+    <string>--host</string>
+    <string>127.0.0.1</string>
+    <string>--port</string>
+    <string>8008</string>
+    <string>--app-dir</string>
+    <string>$HOME/bin</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PYTHONUNBUFFERED</key>
+    <string>1</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>USER</key>
+    <string>$USER</string>
+    <key>HOME</key>
+    <string>$HOME</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>$HOME/Library/Logs/claude_bridge.out</string>
+  <key>StandardErrorPath</key>
+  <string>$HOME/Library/Logs/claude_bridge.err</string>
+</dict>
+</plist>

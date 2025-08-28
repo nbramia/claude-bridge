@@ -6,17 +6,12 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, HTMLResponse
 from pydantic import BaseModel
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv(os.path.expanduser("~/.claude-bridge/.env"))
 
 # ---- Config ----
-PORT = int(os.getenv("PORT", "8008"))
-HOST = os.getenv("HOST", "127.0.0.1")
-TMUX_SESSION = os.getenv("TMUX_SESSION", "claude")
-STATE_DIR = Path(os.path.expandvars(os.getenv("STATE_DIR", "$HOME/.claude-bridge/jobs")))
-LOG_DIR = Path(os.path.expandvars(os.getenv("LOG_DIR", "$HOME/.claude-bridge/logs")))
+PORT = 8008
+TMUX_SESSION = "claude"
+STATE_DIR = Path.home() / ".claude-bridge" / "jobs"
+LOG_DIR = Path.home() / ".claude-bridge" / "logs"
 
 # Ensure directories exist
 STATE_DIR.mkdir(parents=True, exist_ok=True)
@@ -115,16 +110,15 @@ def tail(req_id: str, lines: int = 400):
     text = p.read_text()
     return PlainTextResponse("\n".join(text.splitlines()[-lines:]))
 
-
 @app.get("/jobs/{req_id}/live")
 def live_view(req_id: str):
     """Live updating HTML view of the job"""
-    # Always capture fresh content from tmux instead of using stored file
-    try:
-        text = _tmux_capture(1000)
-    except Exception as e:
-        _log(event="live_view_error", id=req_id, error=str(e))
-        return JSONResponse({"error": "Failed to capture tmux content"}, status_code=500)
+    p = STATE_DIR / f"{req_id}.txt"
+    if not p.exists():
+        return JSONResponse({"error":"unknown id"}, status_code=404)
+    
+    text = p.read_text()
+    lines = text.splitlines()
     
     # Create HTML with auto-refresh
     html = f"""
@@ -140,44 +134,38 @@ def live_view(req_id: str):
             background: #1a1a1a;
             color: #e0e0e0;
             margin: 0;
-            padding: 0;
+            padding: 20px;
             line-height: 1.4;
         }}
         .container {{
-            width: 100%;
-            margin: 0;
+            max-width: 1200px;
+            margin: 0 auto;
         }}
         .header {{
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4CAF50;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #2a2a2a;
-            padding: 12px 20px;
-            border-bottom: 1px solid #4CAF50;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            flex-wrap: wrap;
         }}
         .header-left {{
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 5px;
         }}
         .content {{
             background: #0d1117;
-            padding: 15px;
-            border: none;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
             white-space: pre-wrap;
             font-size: 14px;
-            margin-top: 80px;
-            min-height: calc(100vh - 100px);
-            max-height: calc(100vh - 100px);
+            max-height: 80vh;
             overflow-y: auto;
-            width: 100%;
-            box-sizing: border-box;
         }}
         .status {{
             color: #4CAF50;
@@ -185,6 +173,10 @@ def live_view(req_id: str):
         }}
         .timestamp {{
             color: #888;
+            font-size: 12px;
+        }}
+        .auto-refresh {{
+            color: #FFA500;
             font-size: 12px;
         }}
         .refresh-btn {{
@@ -195,38 +187,18 @@ def live_view(req_id: str):
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
-            white-space: nowrap;
+            margin-left: 10px;
         }}
         .refresh-btn:hover {{
             background: #45a049;
         }}
     </style>
     <script>
-        // Auto-scroll to bottom function
-        function scrollToBottom() {{
-            const content = document.querySelector('.content');
-            if (content) {{
-                // Force scroll to absolute bottom
-                content.scrollTop = content.scrollHeight;
-                // Also try scrolling the window as backup
-                window.scrollTo(0, document.body.scrollHeight);
-            }}
-        }}
-        
         // Auto-scroll to bottom on load
         window.addEventListener('load', function() {{
-            setTimeout(scrollToBottom, 200);
+            const content = document.querySelector('.content');
+            content.scrollTop = content.scrollHeight;
         }});
-        
-        // Auto-scroll to bottom when page becomes visible (after refresh)
-        document.addEventListener('visibilitychange', function() {{
-            if (!document.hidden) {{
-                setTimeout(scrollToBottom, 200);
-            }}
-        }});
-        
-        // Also try scrolling after a short delay to ensure content is rendered
-        setTimeout(scrollToBottom, 500);
         
         // Manual refresh function
         function refreshPage() {{
@@ -238,8 +210,8 @@ def live_view(req_id: str):
     <div class="container">
         <div class="header">
             <div class="header-left">
-            <div class="status">🟢 Claude Bridge</div>
-            <div class="timestamp">Last updated: {datetime.now().strftime('%H:%M:%S')}</div>
+                <div class="status">🟢 Claude Bridge - Live View</div>
+                <div class="timestamp">Last updated: {datetime.now().strftime('%H:%M:%S')}</div>
             </div>
             <button class="refresh-btn" onclick="refreshPage()">🔄 Refresh</button>
         </div>
@@ -250,6 +222,10 @@ def live_view(req_id: str):
 """
     
     return HTMLResponse(html)
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host=HOST, port=PORT)
+    uvicorn.run(app, host="127.0.0.1", port=PORT)
+
+
+

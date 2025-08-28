@@ -55,55 +55,23 @@ ENV/
 # Environment files
 .env
 *.env
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-Icon
-._*
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-# Claude Bridge specific
-~/.claude-bridge/
-logs/
-state/
-*.log
-*.txt
-*.backup
-
-# LaunchAgent files (these are user-specific)
-com.nathan.claude-bridge.plist
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-nohup.out
+claude-bridge.env
 
 # Authentication tokens
 token.txt
 *.token
 
+# LaunchAgent plist files (user-specific)
+*.plist
+
+# Personal configuration directory (user-specific)
+~/.claude-bridge/
+
 # Debug and test files
 debug-*.html
 test_*.py
 *_test.py
+OPEN_SOURCE_PREPARATION.md
+/backup/*
+.DS_Store
+HOW_TO.md

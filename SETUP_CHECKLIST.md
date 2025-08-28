@@ -19,7 +19,7 @@ This checklist clearly shows what gets automated vs. what you need to do manuall
 ### 1. Tailscale Account & Setup
 - [ ] Go to [tailscale.com](https://tailscale.com)
 - [ ] Create free account (Google/GitHub login)
-- [ ] Note your tailnet name (e.g., `nathan.ts.net`)
+- [ ] Note your tailnet name (e.g., `your-tailnet.ts.net`)
 
 ### 2. Install Tailscale Apps
 - [ ] **Mac**: Download from [tailscale.com/download](https://tailscale.com/download) or `brew install tailscale`

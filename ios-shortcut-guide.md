@@ -19,120 +19,62 @@ This guide will help you create an iOS Shortcut that allows you to control Claud
 ### 2. Add Actions
 
 #### Action 1: Dictate Text
-- Tap **+** to add action
-- Search for "Dictate Text"
 - Add the action
 - Configure:
   - Language: Your preferred language
-  - Stop Listening: After 30 seconds (or your preference)
+  - Stop Listening: After pause (or your preference)
 
-#### Action 2: Dictionary
-- Tap **+** to add action
-- Search for "Dictionary"
+OR 
+
+#### Action 1: Ask for Input
 - Add the action
 - Configure:
-  - Key: `text`
-  - Value: `Dictated Text` (from previous action)
-- Add another entry:
-  - Key: `mode`
-  - Value: `ask`
+  - wih: What do you want to send Claude?
+  - Default Answer: blank
+  - Allow multiple lines
 
-#### Action 3: Get Contents of URL (POST)
-- Tap **+** to add action
-- Search for "Get Contents of URL"
+#### Action 2: Get Contents of URL (POST)
 - Add the action
 - Configure:
-  - URL: `https://macbook-pro-4.tailb8bcda.ts.net/send`
+  - URL: `https://[YOUR-DEVICE].[YOUR-TAILNET].ts.net/send`
   - Method: `POST`
   - Headers: Add new header
-    - Key: `Authorization`
-    - Value: `Bearer YOUR_TOKEN_HERE`
-  - Headers: Add another header
-    - Key: `Content-Type`
-    - Value: `application/json`
-  - Request Body: `Dictionary` (from previous action)
+    - Add entry
+      - Key: `Authorization`
+      - Value: `Bearer YOUR_TOKEN_HERE`
+    - Add another entry:
+      - Key: `text`
+      - Value: `Dictated Text` or `Ask for Input` (from previous action)
 
-#### Action 4: Get Dictionary from Input
-- Tap **+** to add action
-- Search for "Get Dictionary from Input"
+#### Action 3: Get Dictionary from Input
 - Add the action
 - Configure:
   - Input: `Contents of URL` (from previous action)
 
-#### Action 4.5: Get Dictionary Value
-- Tap **+** to add action
-- Search for "Get Dictionary Value"
+#### Action 4: Get Dictionary Value
 - Add the action
 - Configure:
   - Input: `Dictionary` (from previous action)
   - Key: `id`
 
-#### Action 4.6: Text (URL Construction)
-- Tap **+** to add action
-- Search for "Text"
+#### Action 5: Text (URL Construction)
 - Add the action
 - Configure:
-  - Text: `https://macbook-pro-4.tailb8bcda.ts.net/jobs/Dictionary Value/tail?lines=100`
+  - Text: `https://[YOUR-DEVICE].[YOUR-TAILNET].ts.net/jobs/`[Dictionary Value]`/live`
   - Note: "Dictionary Value" will be highlighted in orange, indicating it's a variable
 
-#### Action 5: Repeat
-- Tap **+** to add action
-- Search for "Repeat"
+#### Action 6: Open URL in Chrome (or another browser)
 - Add the action
 - Configure:
-  - Repeat: `6` times
+  - Input: `Text` (from previous action)
 
-#### Action 6: Wait (inside Repeat)
-- Inside the Repeat action, tap **+**
-- Search for "Wait"
-- Add the action
-- Configure:
-  - Wait: `1` second
-
-#### Action 7: Get Contents of URL (GET) (inside Repeat)
-- Inside the Repeat action, tap **+**
-- Search for "Get Contents of URL"
-- Add the action
-- Configure:
-  - URL: `Text` (from Action 4.6 - this will be highlighted in orange)
-  - Method: `GET`
-  - Headers: Add header
-    - Key: `Authorization`
-    - Value: `Bearer YOUR_TOKEN_HERE`
-
-#### Action 8: Quick Look (inside Repeat)
-- Inside the Repeat action, tap **+**
-- Search for "Quick Look"
-- Add the action
-- Configure:
-  - Input: `Contents of URL` (from previous action)
-
-#### Action 9: Ask for Input (inside Repeat)
-- Inside the Repeat action, tap **+**
-- Search for "Ask for Input"
-- Add the action
-- Configure:
-  - Prompt: `Stop polling? (y/N)`
-  - Default Answer: `N`
-
-#### Action 10: If (inside Repeat)
-- Inside the Repeat action, tap **+**
-- Search for "If"
-- Add the action
-- Configure:
-  - Input: `Provided Input`
-  - Condition: `is`
-  - Value: `y`
-
-#### Action 11: Exit Shortcut (inside If)
-- Inside the If action, tap **+**
-- Search for "Exit Shortcut"
+#### Action 7: Stop this Shortcut 
 - Add the action
 
 ## Configuration Notes
 
 ### Replace Placeholders
-- `YOUR-MAC`: Your Mac's hostname
+- `YOUR-DEVICE`: Your device's hostname on Tailnet
 - `YOUR-TAILNET`: Your Tailscale tailnet name
 - `YOUR_TOKEN_HERE`: Your authentication token from `~/.claude-bridge/token.txt`
 
@@ -146,9 +88,9 @@ This guide will help you create an iOS Shortcut that allows you to control Claud
 **Note**: You must extract the `id` value using "Get Dictionary Value" before constructing the URL. The `Dictionary` variable contains the entire response, not just the ID.
 
 ### Example URL
-If your Mac is named `nathan-macbook` and your tailnet is `nathan.ts.net`, your URL would be:
+If your Mac is named `jane-macbook` and your tailnet is `tail34ikjy`, your URL would be:
 ```
-https://nathan-macbook.nathan.ts.net/send
+https://david-macbook.tail34ikjy.ts.net/send
 ```
 
 ## Usage
@@ -179,17 +121,11 @@ https://nathan-macbook.nathan.ts.net/send
 - The URL should be `/jobs/abc123/tail`, not `/jobs/Dictionary/tail`
 - Check that "Dictionary Value" (not "Dictionary") is used in the Text action
 
-## Advanced Configuration
-
-### Customize Polling
-- Change the repeat count for more/fewer updates
-- Adjust the wait time between polls
-- Add error handling for failed requests
-
-### Add Notifications
-- Add "Show Notification" action to alert when responses arrive
-- Include response previews in notifications
-
-### Save Responses
-- Add "Save File" action to store responses locally
-- Use "Append to File" to create conversation logs
+### "Field required" or "missing body" Errors
+- **Symptoms**: `{"detail":[{"loc":["body"],"type":"missing","msg":"Field required","input":null}]}`
+- **Cause**: GET request to `/jobs/{id}/tail` is accidentally including a request body
+- **Fix**: In Action 7 (Get Contents of URL for polling):
+  - Ensure Method is set to `GET`
+  - Ensure "Request Body" is set to `None` or completely empty
+  - Do NOT include any JSON or request body for the polling requests
+  - Only the initial `/send` request should have a request body

@@ -35,28 +35,42 @@ else
 fi
 
 echo "📝 Creating environment configuration..."
-cat > ~/.claude-bridge/.env << 'EOF'
+cat > ~/.claude-bridge/.env << EOF
 PORT=8008
+HOST=127.0.0.1
+TMUX_SESSION=claude
 TMUX_TARGET=claude:0.0
 MAX_CAPTURE_LINES=2000
 CAPTURE_DELAY_MS=1500
-BEARER_TOKEN_FILE=/Users/nathanramia/.claude-bridge/token.txt
-LOG_FILE=/Users/nathanramia/.claude-bridge/logs/bridge.log
+BRIDGE_BASE_DIR=\$HOME/.claude-bridge
+BEARER_TOKEN_FILE=\$HOME/.claude-bridge/token.txt
+LOG_FILE=\$HOME/.claude-bridge/logs/bridge.log
+STATE_DIR=\$HOME/.claude-bridge/jobs
+LOG_DIR=\$HOME/.claude-bridge/logs
+VENV_PATH=\$HOME/.venvs/claude-bridge
+BIN_DIR=\$HOME/bin
+LAUNCH_AGENT_ID=com.\$(whoami).claude-bridge
 EOF
 
 echo "🐍 Setting up Python virtual environment..."
-uv venv ~/.venvs/claude-bridge
-source ~/.venvs/claude-bridge/bin/activate
-uv pip install fastapi "uvicorn[standard]" pydantic
+VENV_PATH="$HOME/.venvs/claude-bridge"
+uv venv "$VENV_PATH"
+source "$VENV_PATH/bin/activate"
+uv pip install fastapi "uvicorn[standard]" pydantic python-dotenv
 
 echo "📁 Installing Claude bridge server..."
 cp claude_bridge_server.py ~/bin/
 chmod +x ~/bin/claude_bridge_server.py
 
 echo "🚀 Setting up LaunchAgent..."
-cp com.nathan.claude-bridge.plist ~/Library/LaunchAgents/
-launchctl unload ~/Library/LaunchAgents/com.nathan.claude-bridge.plist 2>/dev/null || true
-launchctl load ~/Library/LaunchAgents/com.nathan.claude-bridge.plist
+LAUNCH_AGENT_ID="com.$(whoami).claude-bridge"
+LAUNCH_AGENT_FILE="$LAUNCH_AGENT_ID.plist"
+
+# Create LaunchAgent plist from template
+sed "s/com\.user\.claude-bridge/$LAUNCH_AGENT_ID/g; s|\$HOME|$HOME|g" com.user.claude-bridge.plist.template > "$LAUNCH_AGENT_FILE"
+cp "$LAUNCH_AGENT_FILE" ~/Library/LaunchAgents/
+launchctl unload ~/Library/LaunchAgents/"$LAUNCH_AGENT_FILE" 2>/dev/null || true
+launchctl load ~/Library/LaunchAgents/"$LAUNCH_AGENT_FILE"
 
 echo "🔍 Testing tmux setup..."
 if ! tmux has-session -t claude 2>/dev/null; then

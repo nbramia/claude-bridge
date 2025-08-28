@@ -3,14 +3,26 @@
 # Status Checker for Claude Bridge
 # This script provides a quick overview of system health
 
+# Load environment variables
+if [ -f ~/.claude-bridge/.env ]; then
+    source ~/.claude-bridge/.env
+fi
+
+# Set defaults if not in env
+PORT=${PORT:-8008}
+HOST=${HOST:-127.0.0.1}
+TMUX_SESSION=${TMUX_SESSION:-claude}
+BRIDGE_BASE_DIR=${BRIDGE_BASE_DIR:-$HOME/.claude-bridge}
+LOG_DIR=${LOG_DIR:-$HOME/.claude-bridge/logs}
+
 echo "🔍 Claude Bridge System Status"
 echo "=============================="
 echo ""
 
 # Check bridge server
 echo "🌐 Bridge Server:"
-if curl -s http://127.0.0.1:8008/healthz > /dev/null; then
-    HEALTH=$(curl -s http://127.0.0.1:8008/healthz)
+if curl -s http://$HOST:$PORT/healthz > /dev/null; then
+    HEALTH=$(curl -s http://$HOST:$PORT/healthz)
     echo "✅ Running - $(echo $HEALTH | grep -o '"ok":[^,]*' | cut -d':' -f2)"
     echo "   Target: $(echo $HEALTH | grep -o '"tmux_target":"[^"]*"' | cut -d'"' -f4)"
 else
@@ -20,19 +32,20 @@ echo ""
 
 # Check tmux session
 echo "📺 Tmux Session:"
-if tmux has-session -t claude 2>/dev/null; then
-    echo "✅ Session 'claude' exists"
-    PANES=$(tmux list-panes -t claude 2>/dev/null | wc -l)
+if tmux has-session -t $TMUX_SESSION 2>/dev/null; then
+    echo "✅ Session '$TMUX_SESSION' exists"
+    PANES=$(tmux list-panes -t $TMUX_SESSION 2>/dev/null | wc -l)
     echo "   Panes: $PANES"
 else
-    echo "❌ Session 'claude' not found"
+    echo "❌ Session '$TMUX_SESSION' not found"
 fi
 echo ""
 
 # Check LaunchAgent
 echo "🚀 LaunchAgent:"
+LAUNCH_AGENT_ID=${LAUNCH_AGENT_ID:-com.$(whoami).claude-bridge}
 if launchctl list | grep -q claude-bridge; then
-    echo "✅ Loaded: com.nathan.claude-bridge"
+    echo "✅ Loaded: $LAUNCH_AGENT_ID"
 else
     echo "❌ Not loaded"
 fi
@@ -55,8 +68,9 @@ echo ""
 
 # Check authentication
 echo "🔐 Authentication:"
-if [ -f ~/.claude-bridge/token.txt ]; then
-    TOKEN=$(cat ~/.claude-bridge/token.txt)
+TOKEN_FILE=${BEARER_TOKEN_FILE:-$HOME/.claude-bridge/token.txt}
+if [ -f "$TOKEN_FILE" ]; then
+    TOKEN=$(cat "$TOKEN_FILE")
     echo "✅ Token exists: ${TOKEN:0:8}..."
 else
     echo "❌ No token found"
@@ -65,11 +79,12 @@ echo ""
 
 # Check logs
 echo "📋 Logs:"
-if [ -f ~/.claude-bridge/logs/bridge.log ]; then
-    LOG_SIZE=$(ls -lh ~/.claude-bridge/logs/bridge.log | awk '{print $5}')
+LOG_FILE=${LOG_FILE:-$LOG_DIR/bridge.log}
+if [ -f "$LOG_FILE" ]; then
+    LOG_SIZE=$(ls -lh "$LOG_FILE" | awk '{print $5}')
     echo "✅ Bridge log: $LOG_SIZE"
     echo "   Recent entries:"
-    tail -3 ~/.claude-bridge/logs/bridge.log 2>/dev/null | sed 's/^/   /'
+    tail -3 "$LOG_FILE" 2>/dev/null | sed 's/^/   /'
 else
     echo "❌ No bridge log found"
 fi
@@ -88,7 +103,7 @@ echo ""
 
 echo "📱 To use from iPhone:"
 echo "   1. Ensure Tailscale is running on both devices"
-echo "   2. Run: tailscale serve --https=443 --bg localhost:8008"
+echo "   2. Run: tailscale serve --https=443 --bg localhost:$PORT"
 echo "   3. Create iOS Shortcut using ios-shortcut-guide.md"
 echo ""
 echo "🧪 Test locally: ./demo.sh"
